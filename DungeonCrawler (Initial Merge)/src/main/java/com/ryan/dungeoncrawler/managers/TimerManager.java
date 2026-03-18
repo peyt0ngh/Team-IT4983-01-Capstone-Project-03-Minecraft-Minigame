@@ -105,7 +105,7 @@ public class TimerManager {
 
             // Broadcast remaining time every 10 s and in the final 10 s.
             int t = state.getTimeRemaining();
-            if (t % 10 == 0 || t <= 10) {
+            if (t % 10 == 0 || t <= 5) {
                 Bukkit.broadcast(Component.text(
                         "⏱ Level " + state.getLevel() + " — " + t + "s remaining",
                         NamedTextColor.AQUA));
@@ -138,7 +138,7 @@ public class TimerManager {
         if (finishedLevel >= TOTAL_LEVELS) {
             // All levels done — stop timer and signal the score session to end.
             Bukkit.broadcast(Component.text(
-                    "🏆 All levels complete! Tallying final scores...",
+                    "All levels complete! Tallying final scores...",
                     NamedTextColor.GOLD));
             stopRun();
 
