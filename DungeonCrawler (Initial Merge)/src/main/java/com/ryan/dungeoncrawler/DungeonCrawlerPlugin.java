@@ -3,9 +3,11 @@ package com.ryan.dungeoncrawler;
 import com.ryan.dungeoncrawler.listeners.EntityDeathListener;
 import com.ryan.dungeoncrawler.listeners.PlayerDeathListener;
 import com.ryan.dungeoncrawler.listeners.PlayerJoinListener;
+import com.ryan.dungeoncrawler.listeners.RoomListener;
 import com.ryan.dungeoncrawler.managers.ScoreManager;
 import com.ryan.dungeoncrawler.managers.TimerManager;
 import com.ryan.dungeoncrawler.util.TreasureItemFactory;
+import com.ryan.dungeoncrawler.game.RoomManager;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
