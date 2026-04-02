@@ -75,11 +75,25 @@ public class DungeonCommandExecutor implements CommandExecutor {
         boolean sp = args[0].equalsIgnoreCase("singleplayer")
                   || args[0].equalsIgnoreCase("sp");
 
-        // 1. Start the scoring session (registers all online players).
-        scoreManager.startSession(sp);
-
-        // 2. Start the countdown timer (spawns mobs, broadcasts level info).
-        timerManager.startRun();
+    // 1. Start scoring
+    scoreManager.startSession(sp);
+    
+    // 2. Start timer
+    timerManager.startRun();
+    
+    // 3. Generate dungeon
+    com.ryan.dungeoncrawler.dungeon.RoomRegistry.clear();
+    
+    com.ryan.dungeoncrawler.dungeon.DungeonGenerator generator =
+            new com.ryan.dungeoncrawler.dungeon.DungeonGenerator(plugin);
+    
+    // Stage 1 = 6x6 grid
+    var rooms = generator.generate(6);
+    
+    // 4. Teleport all players into dungeon start
+    for (Player p : plugin.getServer().getOnlinePlayers()) {
+        p.teleport(rooms.get(0).getCenter());
+    }
 
         String mode = sp ? "Singleplayer" : "Multiplayer";
         plugin.getServer().broadcast(Component.text(
