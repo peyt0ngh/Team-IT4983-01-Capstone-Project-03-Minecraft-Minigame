@@ -41,6 +41,13 @@ public class DungeonCrawlerPlugin extends JavaPlugin {
         scoreManager = new ScoreManager(this);
         timerManager = new TimerManager(this, scoreManager);
 
+        RoomManager roomManager = new RoomManager(this);
+
+            getServer().getPluginManager().registerEvents(
+                new RoomListener(roomManager),
+                this
+            );
+
         // Register event listeners.
         PluginManager pm = getServer().getPluginManager();
         pm.registerEvents(new EntityDeathListener(scoreManager), this);
@@ -76,9 +83,4 @@ public class DungeonCrawlerPlugin extends JavaPlugin {
     public TimerManager getTimerManager() { return timerManager; }
 }
 
-RoomManager roomManager = new RoomManager(this);
 
-getServer().getPluginManager().registerEvents(
-    new RoomListener(roomManager),
-    this
-);
