@@ -112,7 +112,8 @@ public class TimerManager {
             }
 
             if (state.getTimeRemaining() <= 0) {
-                // Time expired: bank 0 seconds and advance.
+                Bukkit.getScheduler().cancelTask(taskId);
+                taskId = -1;
                 advanceLevel(0);
             }
 
