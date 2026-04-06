@@ -16,7 +16,7 @@ public class DungeonGenerator {
     private final JavaPlugin plugin;
     private final Random random = new Random();
 
-    private static final int ROOM_SPACING = 10;
+    private static final int ROOM_SPACING = 16;
     private static final int ROOM_Y_LEVEL = 64;
 
     public DungeonGenerator(JavaPlugin plugin) {
