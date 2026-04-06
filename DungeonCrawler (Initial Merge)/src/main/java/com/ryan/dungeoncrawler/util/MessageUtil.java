@@ -85,13 +85,13 @@ public final class MessageUtil {
             int total = ps.calculateScore(timeBonus, sp);
             lines.add(Component.text(String.format(
                     "  #%d %-16s %5d pts  [K:%d T:%d D:%d]",
-                    rank++,
                     ps.getPlayerName(),
                     total,
                     ps.getKillPoints(),
                     ps.getTreasurePoints(),
                     ps.getDeaths()))
                     .color(rank == 2 ? NamedTextColor.YELLOW : NamedTextColor.WHITE));
+                    rank++,
         }
 
         lines.add(DIVIDER);
