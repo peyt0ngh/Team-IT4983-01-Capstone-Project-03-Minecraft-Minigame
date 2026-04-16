@@ -14,6 +14,11 @@ import java.util.List;
 
 /**
  * Helper class for sending consistently formatted messages to players.
+ *
+ * Fixes applied vs. initial merge:
+ *  - Corrected malformed {@code String.format} call in {@code buildScoreboardLines}
+ *    (missing {@code rank} arg and misplaced comma/semicolon).
+ *  - Gold colour now applied to rank 1, yellow to rank 2 (was inverted).
  */
 public final class MessageUtil {
 
@@ -83,15 +88,24 @@ public final class MessageUtil {
         int rank = 1;
         for (PlayerScore ps : sorted) {
             int total = ps.calculateScore(timeBonus, sp);
+
+            // Colour: gold for 1st, yellow for 2nd, white otherwise.
+            NamedTextColor rowColor = switch (rank) {
+                case 1  -> NamedTextColor.GOLD;
+                case 2  -> NamedTextColor.YELLOW;
+                default -> NamedTextColor.WHITE;
+            };
+
             lines.add(Component.text(String.format(
                     "  #%d %-16s %5d pts  [K:%d T:%d D:%d]",
+                    rank,
                     ps.getPlayerName(),
                     total,
                     ps.getKillPoints(),
                     ps.getTreasurePoints(),
                     ps.getDeaths()))
-                    .color(rank == 2 ? NamedTextColor.YELLOW : NamedTextColor.WHITE));
-                    rank++,
+                    .color(rowColor));
+            rank++;
         }
 
         lines.add(DIVIDER);
