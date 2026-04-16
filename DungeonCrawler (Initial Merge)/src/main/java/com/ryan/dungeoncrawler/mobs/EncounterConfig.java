@@ -26,7 +26,7 @@ public final class EncounterConfig {
             "Stronghold", EntityType.SPIDER, EntityType.CREEPER);
 
     public static final Environment DESERT_TEMPLE = new Environment(
-            "Desert Temple", EntityType.HUSK, EntityType.ZOMBIE); // Parched ≈ Zombie (no direct enum)
+            "Desert Temple", EntityType.HUSK, EntityType.HUSK);
 
     public static final Environment TRIAL_CHAMBER = new Environment(
             "Trial Chamber", EntityType.BREEZE, EntityType.WITCH);
