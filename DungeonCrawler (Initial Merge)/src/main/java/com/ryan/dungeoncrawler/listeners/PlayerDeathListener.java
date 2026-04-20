@@ -17,12 +17,18 @@ import org.bukkit.plugin.java.JavaPlugin;
 /**
  * Listens for player deaths to apply the -20 point death penalty.
  *
- * In singleplayer mode the game ends on the first death; both the timer and
- * the score session are stopped and final results are broadcast.
+ * <p><b>Singleplayer:</b> the first death ends the run immediately (timer
+ * stopped, session tallied and cleared).</p>
  *
- * Integration note: TimerManager is injected here so that /stopRun() is
- * called alongside scoreManager.clearSession() in the singleplayer branch,
- * preventing the timer from continuing after the game has ended.
+ * <p><b>Multiplayer:</b> deaths are recorded for the penalty; the run
+ * continues until all stages are cleared or the timer expires.</p>
+ *
+ * <p><b>Game-over kills:</b> when {@link TimerManager} calls
+ * {@code player.setHealth(0)} as part of a timer-expiry game-over, the session
+ * is already being torn down inside {@code TimerManager.gameOver()}. This
+ * listener guards against that by checking {@link ScoreManager#isSessionActive()}
+ * before doing anything — by the time the death event fires, the session may
+ * already be null.</p>
  */
 public class PlayerDeathListener implements Listener {
 
@@ -36,32 +42,30 @@ public class PlayerDeathListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerDeath(PlayerDeathEvent event) {
+        // Session may have been cleared by TimerManager.gameOver() before this
+        // event fires — guard against NPE / double-end.
         if (!scoreManager.isSessionActive()) return;
 
-        Player player = event.getEntity();
+        Player      player  = event.getEntity();
         GameSession session = scoreManager.getSession();
 
-        // In singleplayer, the game ends on first death.
+        // ── Singleplayer: first death ends the run ────────────────────────────
         if (session.isSingleplayer()) {
             scoreManager.recordDeath(player);
             player.sendMessage(Component.text(
                     "You died! The dungeon run is ending...", NamedTextColor.RED));
 
-            // Stop the countdown timer before tallying scores.
             timerManager.stopRun();
-
             scoreManager.tallyTreasuresFromInventories();
 
-            // Retrieve the plugin instance to pass to MessageUtil.
             JavaPlugin plugin = (JavaPlugin) player.getServer()
                     .getPluginManager().getPlugin("DungeonCrawler");
-
             MessageUtil.broadcastFinalResults(plugin, session);
             scoreManager.clearSession();
             return;
         }
 
-        // Multiplayer: record death and notify the player.
+        // ── Multiplayer: record penalty, notify player ────────────────────────
         scoreManager.recordDeath(player);
         PlayerScore ps = session.getScore(player.getUniqueId());
         if (ps != null) {
