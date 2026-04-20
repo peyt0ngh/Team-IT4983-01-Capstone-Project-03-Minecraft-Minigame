@@ -21,22 +21,21 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 /**
  * Manages per-level countdown timers, difficulty-scaled mob spawning, and
- * automatic mob-kill when a level's timer expires.
+ * game-over handling when a level's timer expires.
  *
- * Key changes from the initial merge:
- * <ul>
- *   <li>Each level has its own time budget (4 / 6 / 8 min) from
- *       {@link EncounterConfig#secondsForLevel(int)}.</li>
- *   <li>Mob types are environment-specific (see {@link EncounterConfig}).</li>
- *   <li>When time runs out on a level all living mobs in the world tagged as
- *       dungeon spawns are killed before advancing to the next level.</li>
- * </ul>
+ * <p><b>Win condition:</b> players must use /mgstageclear (or the dungeon's
+ * stage-completion trigger) to advance through all three stages before each
+ * stage's clock hits zero. Clearing stage 3 wins the run.</p>
  *
- * Integration with ScoreManager:
+ * <p><b>Lose condition:</b> if the timer for <em>any</em> stage reaches zero
+ * before the stage is cleared, every online player is killed, all dungeon mobs
+ * are removed, and the session ends with a "defeat" broadcast.</p>
+ *
+ * Timer budgets per level (from {@link EncounterConfig}):
  * <ul>
- *   <li>Natural expiry banks 0 seconds via {@link ScoreManager#completeStage(int)}.</li>
- *   <li>/mgstageclear banks the caller-supplied seconds.</li>
- *   <li>Both paths share {@link #advanceLevel(int)}.</li>
+ *   <li>Level 1 — 4 minutes (240 s)</li>
+ *   <li>Level 2 — 6 minutes (360 s)</li>
+ *   <li>Level 3 — 8 minutes (480 s)</li>
  * </ul>
  *
  * Level count matches {@link GameSession#TOTAL_STAGES} (both 3).
@@ -132,20 +131,9 @@ public class TimerManager {
             }
 
             if (t <= 0) {
-                // Cancel the task before advancing so the next level's timer
-                // starts fresh from startTimerLoop().
                 Bukkit.getScheduler().cancelTask(taskId);
                 taskId = -1;
-
-                // Kill all remaining dungeon mobs.
-                int killed = killDungeonMobs();
-                if (killed > 0) {
-                    Bukkit.broadcast(Component.text(
-                            "☠ Time's up! " + killed + " mob(s) slain by the dungeon.",
-                            NamedTextColor.DARK_RED));
-                }
-
-                advanceLevel(0);
+                gameOver(state.getLevel());
             }
 
         }, 20L, 20L); // 1-second period
@@ -168,10 +156,11 @@ public class TimerManager {
                 NamedTextColor.GREEN));
 
         if (finishedLevel >= TOTAL_LEVELS) {
-            // All levels done.
+            // All levels cleared in time — victory!
             Bukkit.broadcast(Component.text(
-                    "All levels complete! Tallying final scores…",
-                    NamedTextColor.GOLD));
+                    "⚔ DUNGEON CONQUERED! The party has escaped!", NamedTextColor.GOLD));
+            Bukkit.broadcast(Component.text(
+                    "Tallying final scores…", NamedTextColor.YELLOW));
             stopRun();
 
             if (scoreManager.isSessionActive()) {
@@ -194,7 +183,56 @@ public class TimerManager {
         startTimerLoop(); // restart the loop for the new level
     }
 
-    // ── Mob management ────────────────────────────────────────────────────────
+    // ── Game-over / victory ───────────────────────────────────────────────────
+
+    /**
+     * Called when a stage timer expires without being cleared.
+     * Kills every online player, removes all dungeon mobs, ends the session,
+     * and broadcasts the defeat message.
+     *
+     * @param failedLevel the level whose timer ran out
+     */
+    private void gameOver(int failedLevel) {
+        // Announce defeat first so players see it before the death screen.
+        Bukkit.broadcast(Component.text(
+                "☠ DUNGEON FAILED — Time expired on Level " + failedLevel + "!",
+                NamedTextColor.DARK_RED));
+        Bukkit.broadcast(Component.text(
+                "The dungeon claims another party...",
+                NamedTextColor.RED));
+
+        // Kill all online players (recorded as deaths by PlayerDeathListener).
+        killAllPlayers();
+
+        // Remove remaining mobs so they don't linger after the session ends.
+        killDungeonMobs();
+
+        // Stop the timer and close the scoring session.
+        stopRun();
+        if (scoreManager.isSessionActive()) {
+            scoreManager.tallyTreasuresFromInventories();
+            com.ryan.dungeoncrawler.util.MessageUtil.broadcastFinalResults(
+                    (JavaPlugin) plugin, scoreManager.getSession());
+            scoreManager.clearSession();
+        }
+    }
+
+    /**
+     * Kill every online player with a void/environment-style death.
+     * Each death fires {@link org.bukkit.event.entity.PlayerDeathEvent}, which
+     * {@link com.ryan.dungeoncrawler.listeners.PlayerDeathListener} will catch
+     * to record the death penalty — but because the session is still active at
+     * this point the penalty is applied before {@link #gameOver} clears it.
+     */
+    private void killAllPlayers() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.sendMessage(Component.text(
+                    "☠ The dungeon has consumed you.", NamedTextColor.DARK_RED));
+            player.setHealth(0); // triggers PlayerDeathEvent normally
+        }
+    }
+
+
 
     /**
      * Spawn difficulty-scaled mobs for the given level.
