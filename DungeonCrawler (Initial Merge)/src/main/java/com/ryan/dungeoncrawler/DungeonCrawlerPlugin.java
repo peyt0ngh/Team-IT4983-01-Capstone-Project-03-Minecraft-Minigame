@@ -40,7 +40,9 @@ public class DungeonCrawlerPlugin extends JavaPlugin {
         // Create managers — TimerManager needs ScoreManager to bank time bonuses.
         scoreManager = new ScoreManager(this);
         timerManager = new TimerManager(this, scoreManager);
-
+        
+        new ExitManager(this);
+        
         RoomManager roomManager = new RoomManager(this);
 
             getServer().getPluginManager().registerEvents(
