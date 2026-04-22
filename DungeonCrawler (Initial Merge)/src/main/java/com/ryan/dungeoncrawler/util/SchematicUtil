@@ -18,7 +18,7 @@ import java.io.FileInputStream;
 
 public class SchematicUtil {
 
-    public static void pasteSchematic(File file, Location loc) {
+    public static void pasteSchematic(File file, Location loc, int rotation) {
         try {
             ClipboardFormat format = ClipboardFormats.findByFile(file);
 
@@ -26,6 +26,10 @@ public class SchematicUtil {
                 System.out.println("Unknown schematic format: " + file.getName());
                 return;
             }
+
+            holder.setTransform(
+                new AffineTransform().rotateY(rotation)
+            );
 
             try (ClipboardReader reader = format.getReader(new FileInputStream(file))) {
 
