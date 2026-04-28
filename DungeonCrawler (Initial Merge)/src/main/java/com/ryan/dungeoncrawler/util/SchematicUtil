@@ -10,6 +10,7 @@ import com.sk89q.worldedit.extent.clipboard.io.ClipboardReader;
 import com.sk89q.worldedit.function.operation.Operation;
 import com.sk89q.worldedit.function.operation.Operations;
 import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.math.transform.AffineTransform;
 import com.sk89q.worldedit.session.ClipboardHolder;
 import org.bukkit.Location;
 
@@ -19,6 +20,7 @@ import java.io.FileInputStream;
 public class SchematicUtil {
 
     public static void pasteSchematic(File file, Location loc, int rotation) {
+
         try {
             ClipboardFormat format = ClipboardFormats.findByFile(file);
 
@@ -27,18 +29,23 @@ public class SchematicUtil {
                 return;
             }
 
-            holder.setTransform(
-                new AffineTransform().rotateY(rotation)
-            );
-
-            try (ClipboardReader reader = format.getReader(new FileInputStream(file))) {
+            try (ClipboardReader reader =
+                         format.getReader(new FileInputStream(file))) {
 
                 Clipboard clipboard = reader.read();
 
-                try (EditSession editSession = WorldEdit.getInstance()
-                        .newEditSession(BukkitAdapter.adapt(loc.getWorld()))) {
+                ClipboardHolder holder = new ClipboardHolder(clipboard);
 
-                    Operation operation = new ClipboardHolder(clipboard)
+                holder.setTransform(
+                        new AffineTransform().rotateY(rotation)
+                );
+
+                try (EditSession editSession =
+                             WorldEdit.getInstance()
+                                     .newEditSession(
+                                             BukkitAdapter.adapt(loc.getWorld()))) {
+
+                    Operation operation = holder
                             .createPaste(editSession)
                             .to(BlockVector3.at(
                                     loc.getBlockX(),
