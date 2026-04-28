@@ -4,38 +4,27 @@ import com.ryan.dungeoncrawler.util.SchematicUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
-import java.util.*;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
 
 /**
  * DungeonGenerator
  *
- * Fully corrected version for:
+ * Supports:
  * - SW-origin schematics
  * - 16x16 rooms
- * - Stage sizes: 6x6 / 7x7 / 8x8
+ * - Stage sizes:
+ *     Stage 1 = 6x6
+ *     Stage 2 = 7x7
+ *     Stage 3 = 8x8
  * - Path-first generation
- * - Proper rotation offsets
- *
- * Assumes:
- * Every schematic was copied from:
- *   Bottom South-West corner -> Top North-East corner
- *
- * Therefore pasted rooms naturally expand:
- *   +X (east)
- *   -Z (north)
- *
- * Folder structure:
- *
- * plugins/DungeonCrawler/rooms/stronghold/
- *   hall/
- *   corner/
- *   branch/
- *   intersection/
- *   start/
- *   end/
+ * - Room rotation
+ * - Auto teleport to center of START room
  */
 public class DungeonGenerator {
 
@@ -45,15 +34,14 @@ public class DungeonGenerator {
     private static final int ROOM_SIZE = 16;
     private static final int ROOM_Y = 100;
 
+    private Location stageSpawnLocation;
+
     public DungeonGenerator(JavaPlugin plugin) {
         this.plugin = plugin;
     }
 
     /**
-     * Generate dungeon for stage:
-     * 1 = 6x6
-     * 2 = 7x7
-     * 3 = 8x8
+     * Generate dungeon for stage.
      */
     public void generateStage(int stage) {
 
@@ -66,11 +54,13 @@ public class DungeonGenerator {
 
         World world = Bukkit.getWorlds().get(0);
 
-        // Starting corner of dungeon in world
+        // Base corner of dungeon
         int baseX = 0;
         int baseZ = 0;
 
-        // Generate layout first
+        stageSpawnLocation = null;
+
+        // Generate layout
         DungeonLayoutGenerator layoutGen = new DungeonLayoutGenerator();
         List<DungeonLayoutGenerator.LayoutRoom> rooms = layoutGen.generate(size);
 
@@ -94,18 +84,59 @@ public class DungeonGenerator {
                     rotation
             );
 
+            // Paste room
             SchematicUtil.pasteSchematic(schematic, pasteLoc, rotation);
+
+            // Save spawn location from START room
+            if (room.type == DungeonLayoutGenerator.RoomType.START) {
+                stageSpawnLocation = getRoomCenter(pasteLoc);
+            }
         }
+
+        // Fallback spawn
+        if (stageSpawnLocation == null) {
+            stageSpawnLocation = new Location(world, 8.5, ROOM_Y + 1, -8.5);
+        }
+
+        // Teleport players
+        teleportAllPlayers();
 
         plugin.getLogger().info("Dungeon generated for stage " + stage);
     }
 
     /**
-     * Convert grid cell to world location.
+     * Teleports all online players to stage spawn.
+     */
+    private void teleportAllPlayers() {
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.teleport(stageSpawnLocation);
+        }
+    }
+
+    /**
+     * Center of 16x16 SW-origin room.
+     */
+    private Location getRoomCenter(Location corner) {
+
+        Location loc = corner.clone().add(
+                8.5,
+                1.0,
+                -8.5
+        );
+
+        loc.setYaw(180f);
+        loc.setPitch(0f);
+
+        return loc;
+    }
+
+    /**
+     * Grid location -> world location
      *
-     * Because schematics are SW-origin:
-     * x grows east
-     * z grows north (-z)
+     * SW-origin paste:
+     * +X east
+     * -Z north
      */
     private Location getPasteLocation(World world,
                                       int baseX,
@@ -134,7 +165,7 @@ public class DungeonGenerator {
     }
 
     /**
-     * Determine rotation based on connections.
+     * Determine room rotation from connections.
      */
     private int getRotation(DungeonLayoutGenerator.LayoutRoom room) {
 
@@ -184,14 +215,16 @@ public class DungeonGenerator {
     }
 
     /**
-     * Picks random schematic by room type.
+     * Picks schematic by room type.
      */
     private File getRandomSchematic(DungeonLayoutGenerator.RoomType type) {
 
         String folder = type.name().toLowerCase();
 
-        File dir = new File(plugin.getDataFolder(),
-                "rooms/stronghold/" + folder);
+        File dir = new File(
+                plugin.getDataFolder(),
+                "rooms/stronghold/" + folder
+        );
 
         if (!dir.exists()) return null;
 
@@ -201,5 +234,9 @@ public class DungeonGenerator {
         if (files == null || files.length == 0) return null;
 
         return files[random.nextInt(files.length)];
+    }
+
+    public Location getStageSpawnLocation() {
+        return stageSpawnLocation;
     }
 }
