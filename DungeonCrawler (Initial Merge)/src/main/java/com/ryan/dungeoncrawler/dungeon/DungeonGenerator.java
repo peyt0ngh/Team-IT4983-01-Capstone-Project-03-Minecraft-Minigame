@@ -1,152 +1,205 @@
 package com.ryan.dungeoncrawler.dungeon;
 
 import com.ryan.dungeoncrawler.util.SchematicUtil;
-import com.sk89q.worldedit.extent.clipboard.Clipboard;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.util.*;
 
+/**
+ * DungeonGenerator
+ *
+ * Fully corrected version for:
+ * - SW-origin schematics
+ * - 16x16 rooms
+ * - Stage sizes: 6x6 / 7x7 / 8x8
+ * - Path-first generation
+ * - Proper rotation offsets
+ *
+ * Assumes:
+ * Every schematic was copied from:
+ *   Bottom South-West corner -> Top North-East corner
+ *
+ * Therefore pasted rooms naturally expand:
+ *   +X (east)
+ *   -Z (north)
+ *
+ * Folder structure:
+ *
+ * plugins/DungeonCrawler/rooms/stronghold/
+ *   hall/
+ *   corner/
+ *   branch/
+ *   intersection/
+ *   start/
+ *   end/
+ */
 public class DungeonGenerator {
 
     private final JavaPlugin plugin;
     private final Random random = new Random();
 
-    private static final int ROOM_SPACING = 25;
+    private static final int ROOM_SIZE = 16;
     private static final int ROOM_Y = 100;
 
     public DungeonGenerator(JavaPlugin plugin) {
         this.plugin = plugin;
     }
 
-    public List<Room> generate(int size) {
+    /**
+     * Generate dungeon for stage:
+     * 1 = 6x6
+     * 2 = 7x7
+     * 3 = 8x8
+     */
+    public void generateStage(int stage) {
 
-        List<Room> rooms = new ArrayList<>();
+        int size = switch (stage) {
+            case 1 -> 6;
+            case 2 -> 7;
+            case 3 -> 8;
+            default -> 6;
+        };
+
         World world = Bukkit.getWorlds().get(0);
 
-        // ── Generate Layout ──
+        // Starting corner of dungeon in world
+        int baseX = 0;
+        int baseZ = 0;
+
+        // Generate layout first
         DungeonLayoutGenerator layoutGen = new DungeonLayoutGenerator();
-        List<DungeonLayoutGenerator.LayoutRoom> layout = layoutGen.generate(size);
+        List<DungeonLayoutGenerator.LayoutRoom> rooms = layoutGen.generate(size);
 
-        // ── Load schematics by type ──
-        Map<DungeonLayoutGenerator.RoomType, List<File>> pool = loadRoomPools();
+        for (DungeonLayoutGenerator.LayoutRoom room : rooms) {
 
-        for (DungeonLayoutGenerator.LayoutRoom r : layout) {
+            File schematic = getRandomSchematic(room.type);
 
-            List<File> options = pool.get(r.type);
-
-            if (options == null || options.isEmpty()) {
-                plugin.getLogger().warning("No schematics for type: " + r.type);
+            if (schematic == null) {
+                plugin.getLogger().warning("Missing schematic for: " + room.type);
                 continue;
             }
 
-            File chosen = options.get(random.nextInt(options.size()));
+            int rotation = getRotation(room);
 
-            Location baseLoc = new Location(
+            Location pasteLoc = getPasteLocation(
                     world,
-                    r.x * ROOM_SPACING,
-                    ROOM_Y,
-                    r.z * ROOM_SPACING
+                    baseX,
+                    baseZ,
+                    room.x,
+                    room.z,
+                    rotation
             );
 
-            // ── Find correct rotation based on door markers ──
-            int rotation = findBestRotation(baseLoc, r.connections, chosen);
-
-            // ── Paste schematic ──
-            SchematicUtil.pasteSchematic(chosen, baseLoc, rotation);
-
-            // ── Register room ──
-            Room room = new Room(baseLoc, ROOM_SPACING, ROOM_SPACING);
-            RoomRegistry.register(room);
-            rooms.add(room);
+            SchematicUtil.pasteSchematic(schematic, pasteLoc, rotation);
         }
 
-        return rooms;
+        plugin.getLogger().info("Dungeon generated for stage " + stage);
     }
 
-    // ─────────────────────────────────────────────
-    // LOAD SCHEMATIC POOLS
-    // ─────────────────────────────────────────────
+    /**
+     * Convert grid cell to world location.
+     *
+     * Because schematics are SW-origin:
+     * x grows east
+     * z grows north (-z)
+     */
+    private Location getPasteLocation(World world,
+                                      int baseX,
+                                      int baseZ,
+                                      int gridX,
+                                      int gridZ,
+                                      int rotation) {
 
-    private Map<DungeonLayoutGenerator.RoomType, List<File>> loadRoomPools() {
+        int x = baseX + (gridX * ROOM_SIZE);
+        int z = baseZ - (gridZ * ROOM_SIZE);
 
-        Map<DungeonLayoutGenerator.RoomType, List<File>> map = new HashMap<>();
+        // Rotation offsets for SW-origin schematics
+        switch (rotation) {
 
-        File base = new File(plugin.getDataFolder(), "rooms/stronghold");
+            case 90 -> x += 15;
 
-        for (DungeonLayoutGenerator.RoomType type : DungeonLayoutGenerator.RoomType.values()) {
-
-            File folder = new File(base, type.name().toLowerCase());
-
-            if (!folder.exists()) continue;
-
-            File[] files = folder.listFiles((d, name) -> name.endsWith(".schem"));
-
-            if (files != null) {
-                map.put(type, Arrays.asList(files));
+            case 180 -> {
+                x += 15;
+                z -= 15;
             }
+
+            case 270 -> z -= 15;
         }
 
-        return map;
+        return new Location(world, x, ROOM_Y, z);
     }
 
-    // ─────────────────────────────────────────────
-    // ROTATION LOGIC USING RED WOOL DOORS
-    // ─────────────────────────────────────────────
+    /**
+     * Determine rotation based on connections.
+     */
+    private int getRotation(DungeonLayoutGenerator.LayoutRoom room) {
 
-    private int findBestRotation(Location loc,
-                                 Set<DungeonLayoutGenerator.Direction> needed,
-                                 File schematic) {
+        Set<DungeonLayoutGenerator.Direction> c = room.connections;
 
-        for (int rotation : new int[]{0, 90, 180, 270}) {
+        switch (room.type) {
 
-            Set<DungeonLayoutGenerator.Direction> doors =
-                    detectDoors(loc, schematic, rotation);
+            case START:
+            case END:
+                if (c.contains(DungeonLayoutGenerator.Direction.NORTH)) return 0;
+                if (c.contains(DungeonLayoutGenerator.Direction.EAST)) return 90;
+                if (c.contains(DungeonLayoutGenerator.Direction.SOUTH)) return 180;
+                if (c.contains(DungeonLayoutGenerator.Direction.WEST)) return 270;
+                return 0;
 
-            if (doors.equals(needed)) {
-                return rotation;
-            }
+            case HALL:
+                if (c.contains(DungeonLayoutGenerator.Direction.NORTH)
+                        && c.contains(DungeonLayoutGenerator.Direction.SOUTH))
+                    return 0;
+
+                return 90;
+
+            case CORNER:
+                if (has(c, "NORTH", "EAST")) return 0;
+                if (has(c, "EAST", "SOUTH")) return 90;
+                if (has(c, "SOUTH", "WEST")) return 180;
+                return 270;
+
+            case BRANCH:
+                if (!c.contains(DungeonLayoutGenerator.Direction.SOUTH)) return 0;
+                if (!c.contains(DungeonLayoutGenerator.Direction.WEST)) return 90;
+                if (!c.contains(DungeonLayoutGenerator.Direction.NORTH)) return 180;
+                return 270;
+
+            case INTERSECTION:
+            default:
+                return 0;
         }
-
-        // fallback
-        return 0;
     }
 
-    // ─────────────────────────────────────────────
-    // DETECT DOORS FROM RED WOOL
-    // ─────────────────────────────────────────────
+    private boolean has(Set<DungeonLayoutGenerator.Direction> set,
+                        String a,
+                        String b) {
 
-    private Set<DungeonLayoutGenerator.Direction> detectDoors(Location loc,
-                                                              File schematic,
-                                                              int rotation) {
+        return set.contains(DungeonLayoutGenerator.Direction.valueOf(a))
+                && set.contains(DungeonLayoutGenerator.Direction.valueOf(b));
+    }
 
-        Set<DungeonLayoutGenerator.Direction> doors = new HashSet<>();
+    /**
+     * Picks random schematic by room type.
+     */
+    private File getRandomSchematic(DungeonLayoutGenerator.RoomType type) {
 
-        // TEMP paste (could be optimized later)
-        SchematicUtil.pasteSchematic(schematic, loc, rotation);
+        String folder = type.name().toLowerCase();
 
-        int topY = loc.getBlockY() + 5; // adjust based on room height
+        File dir = new File(plugin.getDataFolder(),
+                "rooms/stronghold/" + folder);
 
-        for (int x = -ROOM_SPACING / 2; x <= ROOM_SPACING / 2; x++) {
-            for (int z = -ROOM_SPACING / 2; z <= ROOM_SPACING / 2; z++) {
+        if (!dir.exists()) return null;
 
-                Block b = loc.clone().add(x, 5, z).getBlock();
+        File[] files = dir.listFiles((d, name) ->
+                name.toLowerCase().endsWith(".schem"));
 
-                if (b.getType() == Material.RED_WOOL) {
+        if (files == null || files.length == 0) return null;
 
-                    if (x > 5) doors.add(DungeonLayoutGenerator.Direction.EAST);
-                    if (x < -5) doors.add(DungeonLayoutGenerator.Direction.WEST);
-                    if (z > 5) doors.add(DungeonLayoutGenerator.Direction.SOUTH);
-                    if (z < -5) doors.add(DungeonLayoutGenerator.Direction.NORTH);
-                }
-            }
-        }
-
-        return doors;
+        return files[random.nextInt(files.length)];
     }
 }
