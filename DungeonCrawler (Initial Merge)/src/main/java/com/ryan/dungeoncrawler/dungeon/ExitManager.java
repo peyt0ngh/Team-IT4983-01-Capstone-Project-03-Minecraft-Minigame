@@ -1,20 +1,34 @@
 package com.ryan.dungeoncrawler.dungeon;
 
+import com.ryan.dungeoncrawler.managers.ScoreManager;
+import com.ryan.dungeoncrawler.managers.TimerManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class ExitManager {
 
     private final JavaPlugin plugin;
+    private final ScoreManager scoreManager;
+    private final TimerManager timerManager;
 
-    public ExitManager(JavaPlugin plugin) {
+    private boolean transitioning = false;
+    private long lastTrigger = 0L;
+
+    public ExitManager(JavaPlugin plugin,
+                       ScoreManager scoreManager,
+                       TimerManager timerManager) {
+
         this.plugin = plugin;
+        this.scoreManager = scoreManager;
+        this.timerManager = timerManager;
+
         startChecking();
     }
 
@@ -22,39 +36,55 @@ public class ExitManager {
 
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
 
-            Set<Player> playersOnPlates = new HashSet<>();
-            Set<Player> activePlayers = new HashSet<>(Bukkit.getOnlinePlayers());
+            if (transitioning) return;
 
-            for (Player player : activePlayers) {
+            if (!scoreManager.isSessionActive()) return;
 
-                Block block = player.getLocation().getBlock();
+            Set<Player> activePlayers = Bukkit.getOnlinePlayers()
+                    .stream()
+                    .filter(p -> scoreManager.getSession()
+                            .hasPlayer(p.getUniqueId()))
+                    .collect(Collectors.toSet());
 
-                if (isPressurePlate(block.getType())) {
-                    playersOnPlates.add(player);
-                }
-            }
+            if (activePlayers.isEmpty()) return;
 
-            // All players must be on plates
-            if (!activePlayers.isEmpty() &&
-                playersOnPlates.size() == activePlayers.size()) {
+            long now = System.currentTimeMillis();
 
+            if (now - lastTrigger < 3000) return;
+
+            boolean allReady = activePlayers.stream()
+                    .allMatch(this::standingOnGoldPlate);
+
+            if (allReady) {
                 triggerNextStage();
+                lastTrigger = now;
             }
 
-        }, 20L, 20L); // check every second
+        }, 20L, 20L);
     }
 
-    private boolean isPressurePlate(Material mat) {
-        return mat.name().contains("PRESSURE_PLATE");
+    private boolean standingOnGoldPlate(Player player) {
+
+        Block block = player.getLocation().getBlock();
+
+        return block.getType()
+                == Material.LIGHT_WEIGHTED_PRESSURE_PLATE;
     }
 
     private void triggerNextStage() {
 
-        Bukkit.broadcastMessage("§aAll players ready! Advancing to next stage...");
+        transitioning = true;
 
-        // TODO: Hook into your TimerManager / Stage system
-        // Example:
-        // timerManager.clearCurrentLevel(0);
+        Bukkit.broadcastMessage(
+                "§aAll players ready! Advancing stage..."
+        );
 
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+
+            timerManager.clearCurrentLevel(0);
+
+            transitioning = false;
+
+        }, 40L); // 2 second delay
     }
 }
