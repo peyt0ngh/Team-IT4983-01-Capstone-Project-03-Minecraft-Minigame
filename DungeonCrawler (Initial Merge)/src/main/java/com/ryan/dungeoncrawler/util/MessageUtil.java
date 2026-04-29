@@ -76,7 +76,7 @@ public final class MessageUtil {
                            .decoration(TextDecoration.BOLD, true));
         lines.add(Component.text(
                 "  Mode: " + (sp ? "Singleplayer" : "Multiplayer")
-                + " | Stage: " + Math.min(session.getCurrentStage(), GameSession.TOTAL_STAGES)
+                + " | Stage: " + Math.min(session.getCurrentStage() + 1, GameSession.TOTAL_STAGES)
                 + "/" + GameSession.TOTAL_STAGES
                 + " | Time bonus: +" + timeBonus + " pts")
                 .color(NamedTextColor.GRAY));
