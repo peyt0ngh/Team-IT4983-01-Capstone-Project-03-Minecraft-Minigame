@@ -29,7 +29,7 @@ public class DungeonCrawlerPlugin extends JavaPlugin {
         PluginManager pm = getServer().getPluginManager();
 
         // Exit progression listener
-        pm.registerEvents(new ExitManager(this), this);
+        new ExitManager(this, scoreManager, timerManager);
 
         // Legacy room system (can remove later if unused)
         RoomManager roomManager = new RoomManager(this);
