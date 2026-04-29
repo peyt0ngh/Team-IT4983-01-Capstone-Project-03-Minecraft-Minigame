@@ -1,12 +1,11 @@
 package com.ryan.dungeoncrawler;
 
+import com.ryan.dungeoncrawler.dungeon.ExitManager;
 import com.ryan.dungeoncrawler.listeners.EntityDeathListener;
 import com.ryan.dungeoncrawler.listeners.PlayerDeathListener;
 import com.ryan.dungeoncrawler.listeners.PlayerJoinListener;
-import com.ryan.dungeoncrawler.listeners.RoomListener;
 import com.ryan.dungeoncrawler.managers.ScoreManager;
 import com.ryan.dungeoncrawler.managers.TimerManager;
-import com.ryan.dungeoncrawler.game.RoomManager;
 import com.ryan.dungeoncrawler.util.TreasureItemFactory;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.PluginManager;
@@ -28,19 +27,12 @@ public class DungeonCrawlerPlugin extends JavaPlugin {
 
         PluginManager pm = getServer().getPluginManager();
 
-        // Exit progression listener
         new ExitManager(this, scoreManager, timerManager);
 
-        // Legacy room system (can remove later if unused)
-        RoomManager roomManager = new RoomManager(this);
-        pm.registerEvents(new RoomListener(roomManager), this);
-
-        // Gameplay listeners
         pm.registerEvents(new EntityDeathListener(scoreManager), this);
-        pm.registerEvents(new PlayerDeathListener(scoreManager, timerManager), this);
+        pm.registerEvents(new PlayerDeathListener(this, scoreManager, timerManager), this);
         pm.registerEvents(new PlayerJoinListener(scoreManager), this);
 
-        // Commands
         DungeonCommandExecutor executor =
                 new DungeonCommandExecutor(this, scoreManager, timerManager);
 
@@ -55,7 +47,6 @@ public class DungeonCrawlerPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-
         if (timerManager != null) {
             timerManager.stopRun();
         }
