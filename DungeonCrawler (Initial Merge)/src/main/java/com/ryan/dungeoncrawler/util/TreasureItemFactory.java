@@ -30,10 +30,10 @@ public class TreasureItemFactory {
 
     public static ItemStack createTreasureItem(TreasureRarity rarity) {
         Material mat = switch (rarity) {
-            case COMMON     -> Material.SUNFLOWER;
-            case UNCOMMON   -> Material.EMERALD;
-            case RARE       -> Material.DIAMOND;
-            case SUPER_RARE -> Material.NETHER_STAR;
+            case COMMON     -> Material.MUSIC_DISC_11;
+            case UNCOMMON   -> Material.MUSIC_DISC_STAL;
+            case RARE       -> Material.MUSIC_DISC_WAIT;
+            case SUPER_RARE -> Material.MUSIC_DISC_RELIC;
         };
 
         ItemStack item = new ItemStack(mat, 1);
