@@ -8,23 +8,20 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 /**
  * DungeonGenerator
  *
+ * Theme-ready procedural generator.
+ *
  * Supports:
+ * - 3 stages
+ * - Random environment per stage
+ * - Uses room TYPES, not hardcoded schematics
  * - SW-origin schematics
  * - 16x16 rooms
- * - Stage sizes:
- *     Stage 1 = 6x6
- *     Stage 2 = 7x7
- *     Stage 3 = 8x8
- * - Path-first generation
- * - Room rotation
- * - Auto teleport to center of START room
+ * - Auto player teleport to START room
  */
 public class DungeonGenerator {
 
@@ -35,41 +32,46 @@ public class DungeonGenerator {
     private static final int ROOM_Y = 100;
 
     private Location stageSpawnLocation;
+    private String currentTheme = "stronghold";
 
     public DungeonGenerator(JavaPlugin plugin) {
         this.plugin = plugin;
     }
 
-    /**
-     * Generate dungeon for stage.
-     */
+    /* ====================================================== */
+    /* PUBLIC GENERATION                                      */
+    /* ====================================================== */
+
     public void generateStage(int stage) {
 
-        int size = switch (stage) {
-            case 1 -> 6;
-            case 2 -> 7;
-            case 3 -> 8;
-            default -> 6;
-        };
+        int gridSize = getGridSize(stage);
+
+        currentTheme = chooseTheme(stage);
+
+        plugin.getLogger().info("Generating Stage "
+                + stage + " Theme: " + currentTheme);
 
         World world = Bukkit.getWorlds().get(0);
 
-        // Base corner of dungeon
         int baseX = 0;
         int baseZ = 0;
 
         stageSpawnLocation = null;
 
-        // Generate layout
         DungeonLayoutGenerator layoutGen = new DungeonLayoutGenerator();
-        List<DungeonLayoutGenerator.LayoutRoom> rooms = layoutGen.generate(size);
+        List<DungeonLayoutGenerator.LayoutRoom> rooms =
+                layoutGen.generate(gridSize);
 
         for (DungeonLayoutGenerator.LayoutRoom room : rooms) {
 
-            File schematic = getRandomSchematic(room.type);
+            File schematic =
+                    getRandomSchematic(stage, currentTheme, room.type);
 
             if (schematic == null) {
-                plugin.getLogger().warning("Missing schematic for: " + room.type);
+                plugin.getLogger().warning(
+                        "Missing schematic for "
+                                + room.type + " in "
+                                + currentTheme);
                 continue;
             }
 
@@ -84,71 +86,210 @@ public class DungeonGenerator {
                     rotation
             );
 
-            // Paste room
-            SchematicUtil.pasteSchematic(schematic, pasteLoc, rotation);
+            SchematicUtil.pasteSchematic(
+                    schematic,
+                    pasteLoc,
+                    rotation
+            );
 
-            // Save spawn location from START room
             if (room.type == DungeonLayoutGenerator.RoomType.START) {
                 stageSpawnLocation = getRoomCenter(pasteLoc);
             }
         }
 
-        // Fallback spawn
         if (stageSpawnLocation == null) {
-            stageSpawnLocation = new Location(world, 8.5, ROOM_Y + 1, -8.5);
+            stageSpawnLocation =
+                    new Location(world, 8.5, ROOM_Y + 1, -8.5);
         }
 
-        // Teleport players
         teleportAllPlayers();
-
-        plugin.getLogger().info("Dungeon generated for stage " + stage);
     }
 
-    /**
-     * Teleports all online players to stage spawn.
-     */
-    private void teleportAllPlayers() {
+    /* ====================================================== */
+    /* THEMES                                                 */
+    /* ====================================================== */
 
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            player.teleport(stageSpawnLocation);
-        }
+    private String chooseTheme(int stage) {
+
+        List<String> themes = switch (stage) {
+
+            case 1 -> Arrays.asList(
+                    "stronghold",
+                    "trial_chamber",
+                    "woodland_mansion"
+            );
+
+            case 2 -> Arrays.asList(
+                    "ancient_city",
+                    "nether_fortress"
+            );
+
+            case 3 -> Arrays.asList(
+                    "end_city",
+                    "bastion_remnant",
+                    "ocean_monument"
+            );
+
+            default -> Collections.singletonList("stronghold");
+        };
+
+        return themes.get(random.nextInt(themes.size()));
     }
 
-    /**
-     * Center of 16x16 SW-origin room.
-     */
-    private Location getRoomCenter(Location corner) {
+    private int getGridSize(int stage) {
+        return switch (stage) {
+            case 1 -> 6;
+            case 2 -> 7;
+            case 3 -> 8;
+            default -> 6;
+        };
+    }
 
-        Location loc = corner.clone().add(
-                8.5,
-                1.0,
-                -8.5
+    /* ====================================================== */
+    /* SCHEMATIC LOADING                                      */
+    /* ====================================================== */
+
+    private File getRandomSchematic(int stage,
+                                    String theme,
+                                    DungeonLayoutGenerator.RoomType type) {
+
+        String roomFolder = mapRoomType(type);
+
+        File dir = new File(
+                plugin.getDataFolder(),
+                "rooms/stage" + stage + "/"
+                        + theme + "/"
+                        + roomFolder
         );
 
-        loc.setYaw(180f);
-        loc.setPitch(0f);
+        if (!dir.exists()) return null;
 
-        return loc;
+        File[] files = dir.listFiles((d, name) ->
+                name.toLowerCase().endsWith(".schem"));
+
+        if (files == null || files.length == 0) return null;
+
+        return files[random.nextInt(files.length)];
     }
 
     /**
-     * Grid location -> world location
-     *
-     * SW-origin paste:
-     * +X east
-     * -Z north
+     * Converts logical type to folder name.
      */
-    private Location getPasteLocation(World world,
-                                      int baseX,
-                                      int baseZ,
-                                      int gridX,
-                                      int gridZ,
-                                      int rotation) {
+    private String mapRoomType(
+            DungeonLayoutGenerator.RoomType type) {
+
+        return switch (type) {
+
+            case START -> "start";
+            case EXIT -> "exit";
+            case END -> "end";
+            case HALL -> "hall";
+            case CORNER -> "corner";
+            case BRANCH -> "branch";
+            case INTERSECTION -> "intersection";
+        };
+    }
+
+    /* ====================================================== */
+    /* ROOM ROTATION                                          */
+    /* ====================================================== */
+
+    private int getRotation(
+            DungeonLayoutGenerator.LayoutRoom room) {
+
+        Set<DungeonLayoutGenerator.Direction> c =
+                room.connections;
+
+        switch (room.type) {
+
+            case START:
+            case EXIT:
+            case END:
+                if (c.contains(
+                        DungeonLayoutGenerator.Direction.NORTH))
+                    return 0;
+
+                if (c.contains(
+                        DungeonLayoutGenerator.Direction.EAST))
+                    return 90;
+
+                if (c.contains(
+                        DungeonLayoutGenerator.Direction.SOUTH))
+                    return 180;
+
+                if (c.contains(
+                        DungeonLayoutGenerator.Direction.WEST))
+                    return 270;
+
+                return 0;
+
+            case HALL:
+
+                boolean ns =
+                        c.contains(
+                                DungeonLayoutGenerator.Direction.NORTH)
+                                &&
+                                c.contains(
+                                        DungeonLayoutGenerator.Direction.SOUTH);
+
+                return ns ? 0 : 90;
+
+            case CORNER:
+
+                if (has(c, "NORTH", "EAST")) return 0;
+                if (has(c, "EAST", "SOUTH")) return 90;
+                if (has(c, "SOUTH", "WEST")) return 180;
+                return 270;
+
+            case BRANCH:
+
+                if (!c.contains(
+                        DungeonLayoutGenerator.Direction.SOUTH))
+                    return 0;
+
+                if (!c.contains(
+                        DungeonLayoutGenerator.Direction.WEST))
+                    return 90;
+
+                if (!c.contains(
+                        DungeonLayoutGenerator.Direction.NORTH))
+                    return 180;
+
+                return 270;
+
+            case INTERSECTION:
+            default:
+                return 0;
+        }
+    }
+
+    private boolean has(
+            Set<DungeonLayoutGenerator.Direction> set,
+            String a,
+            String b) {
+
+        return set.contains(
+                DungeonLayoutGenerator.Direction.valueOf(a))
+                &&
+                set.contains(
+                        DungeonLayoutGenerator.Direction.valueOf(b));
+    }
+
+    /* ====================================================== */
+    /* PASTE LOCATIONS                                        */
+    /* ====================================================== */
+
+    private Location getPasteLocation(
+            World world,
+            int baseX,
+            int baseZ,
+            int gridX,
+            int gridZ,
+            int rotation) {
 
         int x = baseX + (gridX * ROOM_SIZE);
         int z = baseZ - (gridZ * ROOM_SIZE);
 
-        // Rotation offsets for SW-origin schematics
         switch (rotation) {
 
             case 90 -> x += 15;
@@ -164,79 +305,35 @@ public class DungeonGenerator {
         return new Location(world, x, ROOM_Y, z);
     }
 
-    /**
-     * Determine room rotation from connections.
-     */
-    private int getRotation(DungeonLayoutGenerator.LayoutRoom room) {
+    private Location getRoomCenter(Location corner) {
 
-        Set<DungeonLayoutGenerator.Direction> c = room.connections;
-
-        switch (room.type) {
-
-            case START:
-            case END:
-                if (c.contains(DungeonLayoutGenerator.Direction.NORTH)) return 0;
-                if (c.contains(DungeonLayoutGenerator.Direction.EAST)) return 90;
-                if (c.contains(DungeonLayoutGenerator.Direction.SOUTH)) return 180;
-                if (c.contains(DungeonLayoutGenerator.Direction.WEST)) return 270;
-                return 0;
-
-            case HALL:
-                if (c.contains(DungeonLayoutGenerator.Direction.NORTH)
-                        && c.contains(DungeonLayoutGenerator.Direction.SOUTH))
-                    return 0;
-
-                return 90;
-
-            case CORNER:
-                if (has(c, "NORTH", "EAST")) return 0;
-                if (has(c, "EAST", "SOUTH")) return 90;
-                if (has(c, "SOUTH", "WEST")) return 180;
-                return 270;
-
-            case BRANCH:
-                if (!c.contains(DungeonLayoutGenerator.Direction.SOUTH)) return 0;
-                if (!c.contains(DungeonLayoutGenerator.Direction.WEST)) return 90;
-                if (!c.contains(DungeonLayoutGenerator.Direction.NORTH)) return 180;
-                return 270;
-
-            case INTERSECTION:
-            default:
-                return 0;
-        }
-    }
-
-    private boolean has(Set<DungeonLayoutGenerator.Direction> set,
-                        String a,
-                        String b) {
-
-        return set.contains(DungeonLayoutGenerator.Direction.valueOf(a))
-                && set.contains(DungeonLayoutGenerator.Direction.valueOf(b));
-    }
-
-    /**
-     * Picks schematic by room type.
-     */
-    private File getRandomSchematic(DungeonLayoutGenerator.RoomType type) {
-
-        String folder = type.name().toLowerCase();
-
-        File dir = new File(
-                plugin.getDataFolder(),
-                "rooms/stronghold/" + folder
+        Location loc = corner.clone().add(
+                8.5,
+                1,
+                -8.5
         );
 
-        if (!dir.exists()) return null;
+        loc.setYaw(180f);
 
-        File[] files = dir.listFiles((d, name) ->
-                name.toLowerCase().endsWith(".schem"));
+        return loc;
+    }
 
-        if (files == null || files.length == 0) return null;
+    /* ====================================================== */
+    /* PLAYER TELEPORT                                        */
+    /* ====================================================== */
 
-        return files[random.nextInt(files.length)];
+    private void teleportAllPlayers() {
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.teleport(stageSpawnLocation);
+        }
     }
 
     public Location getStageSpawnLocation() {
         return stageSpawnLocation;
+    }
+
+    public String getCurrentTheme() {
+        return currentTheme;
     }
 }
