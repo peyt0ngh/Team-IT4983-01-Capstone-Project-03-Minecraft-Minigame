@@ -1,4 +1,4 @@
-- DungeonCrawler (Initial Merge) - Includes all systems including generation (needs fixing)
+- DungeonCrawler (Initial Merge) - Includes all systems
 
 - Scoring System
 
