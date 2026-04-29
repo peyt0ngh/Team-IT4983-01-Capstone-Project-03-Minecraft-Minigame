@@ -64,11 +64,9 @@ public class ExitManager {
     }
 
     private boolean standingOnGoldPlate(Player player) {
-
-        Block block = player.getLocation().getBlock();
-
-        return block.getType()
-                == Material.LIGHT_WEIGHTED_PRESSURE_PLATE;
+        Block blockBelow = player.getLocation().subtract(0, 0.1, 0).getBlock();
+    
+        return blockBelow.getType() == Material.LIGHT_WEIGHTED_PRESSURE_PLATE;
     }
 
     private void triggerNextStage() {
