@@ -5,9 +5,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
-/**
- * Automatically registers players who join mid-session.
- */
 public class PlayerJoinListener implements Listener {
 
     private final ScoreManager scoreManager;
@@ -18,9 +15,12 @@ public class PlayerJoinListener implements Listener {
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
+
         if (!scoreManager.isSessionActive()) return;
-        scoreManager.getSession().addPlayer(
-                event.getPlayer().getUniqueId(),
-                event.getPlayer().getName());
+
+        // Do NOT add them to the session mid-run
+        event.getPlayer().sendMessage(
+                "§eA dungeon run is already in progress. Please wait for the next round."
+        );
     }
 }
