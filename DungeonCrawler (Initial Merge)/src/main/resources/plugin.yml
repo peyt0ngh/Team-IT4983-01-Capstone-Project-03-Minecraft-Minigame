@@ -2,45 +2,51 @@ name: DungeonCrawler
 version: 1.0.0
 main: com.ryan.dungeoncrawler.DungeonCrawlerPlugin
 api-version: 1.20
-description: Dungeon Crawler — unified timer, difficulty scaling, scoring, and treasures.
+description: Dungeon Crawler minigame with stage progression, scoring, loot, and themed dungeons.
 author: Ryan
 
 commands:
+
   mgstart:
-    description: Start a dungeon crawler session (initialises timer + scoring).
+    description: Start a dungeon crawler session.
     usage: /mgstart <singleplayer|multiplayer>
     aliases: [startgame]
     permission: dungeoncrawler.admin
 
   mgstop:
-    description: Stop the current session, cancel the timer, and display final scores.
+    description: Stop the active dungeon session.
     usage: /mgstop
     aliases: [stopgame]
     permission: dungeoncrawler.admin
 
   mgscore:
-    description: View the current live scoreboard.
+    description: View live scores.
     usage: /mgscore
     aliases: [score, scores]
 
   mgstageclear:
-    description: >
-      Manually complete the current level and bank the specified seconds as a
-      time bonus. Also advances the difficulty and spawns the next wave.
+    description: Force advance to the next stage.
     usage: /mgstageclear <seconds>
     aliases: [stageclear]
     permission: dungeoncrawler.admin
 
   mgaddtreasure:
-    description: Give a treasure item of a specified rarity directly to a player.
-    usage: /mgaddtreasure <player> <common|uncommon|rare|superrare>
+    description: Give treasure to a player.
+    usage: /mgaddtreasure <player> <rarity>
     aliases: [addtreasure]
     permission: dungeoncrawler.admin
 
+  mgdebug:
+    description: View dungeon debug information.
+    usage: /mgdebug
+    permission: dungeoncrawler.admin
+
 permissions:
+
   dungeoncrawler.admin:
-    description: Access to game management commands (start, stop, stageclear, addtreasure).
+    description: Admin control of the dungeon system.
     default: op
+
   dungeoncrawler.play:
-    description: Allows participation in a scored dungeon run.
+    description: Participate in dungeon runs.
     default: true
