@@ -32,7 +32,7 @@ public class TimerManager {
         this.scoreManager = scoreManager;
 
         this.world = Bukkit.getWorld("world");
-        this.pasteLocation = new Location(world, 0, 70, 0);
+        this.pasteLocation = new Location(world, 1000, -60, 0);
     }
 
     /* ===================================================== */
