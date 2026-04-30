@@ -40,7 +40,6 @@ public class TimerManager {
     /* ===================================================== */
 
     public void startRun() {
-
         stopRun();
 
         currentLevel = 1;
@@ -49,7 +48,6 @@ public class TimerManager {
     }
 
     public void stopRun() {
-
         if (taskId != -1) {
             Bukkit.getScheduler().cancelTask(taskId);
             taskId = -1;
@@ -61,7 +59,6 @@ public class TimerManager {
     }
 
     public boolean clearCurrentLevel(int secondsRemaining) {
-
         if (!isRunning()) return false;
 
         stopRun();
@@ -98,7 +95,6 @@ public class TimerManager {
     /* ===================================================== */
 
     private void startTimer(int seconds) {
-
         timeRemaining = seconds;
 
         Bukkit.broadcast(Component.text(
@@ -162,9 +158,7 @@ public class TimerManager {
                 NamedTextColor.GRAY
         ));
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            teleportPlayersToSpawn();
-        }, 20L);
+        Bukkit.getScheduler().runTaskLater(plugin, this::teleportPlayersToSpawn, 20L);
     }
 
     /* ===================================================== */
@@ -218,9 +212,13 @@ public class TimerManager {
 
     private void clearArena() {
 
-        for (int x = -10; x <= 80; x++) {
-            for (int y = 60; y <= 120; y++) {
-                for (int z = -10; z <= 80; z++) {
+        int baseX = pasteLocation.getBlockX();
+        int baseY = pasteLocation.getBlockY();
+        int baseZ = pasteLocation.getBlockZ();
+
+        for (int x = baseX - 10; x <= baseX + 100; x++) {
+            for (int y = baseY - 10; y <= baseY + 80; y++) {
+                for (int z = baseZ - 10; z <= baseZ + 100; z++) {
                     world.getBlockAt(x, y, z).setType(Material.AIR);
                 }
             }
@@ -285,7 +283,6 @@ public class TimerManager {
     /* ===================================================== */
 
     private int stageSeconds(int level) {
-
         return switch (level) {
             case 1 -> 240;
             case 2 -> 360;
