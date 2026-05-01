@@ -79,7 +79,7 @@ public class ExitManager {
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
 
-            timerManager.clearCurrentLevel(0);
+            timerManager.clearCurrentLevelWithCurrentTime();
 
             transitioning = false;
 
