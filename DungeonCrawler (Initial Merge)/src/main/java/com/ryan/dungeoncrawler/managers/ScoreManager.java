@@ -67,7 +67,7 @@ public class ScoreManager {
         PlayerScore ps = getOrCreate(killer);
 
         double maxHealth = mob.getAttribute(
-                org.bukkit.attribute.Attribute.GENERIC_MAX_HEALTH).getValue();
+                org.bukkit.attribute.Attribute.MAX_HEALTH).getValue();
         int pts = pointsForHealth(maxHealth);
         ps.addKillPoints(pts);
     }
