@@ -1,1 +1,53 @@
+name: DungeonExplorers
+version: 1.0.0
+main: com.ryan.dungeonexplorers.DungeonExplorersPlugin
+api-version: 1.20
+description: Dungeon minigame with stage progression, scoring, loot, and themed dungeons.
+author: Ryan Heidel, Peyton Rihner, Preston Clark, Zara Khusro, Sarah Muhammmad
+
+commands:
+
+  mgstart:
+    description: Start a dungeon crawler session.
+    usage: /mgstart <singleplayer|multiplayer>
+    aliases: [startgame]
+    permission: dungeonexplorers.admin
+
+  mgstop:
+    description: Stop the active dungeon session.
+    usage: /mgstop
+    aliases: [stopgame]
+    permission: dungeonexplorers.admin
+
+  mgscore:
+    description: View live scores.
+    usage: /mgscore
+    aliases: [score, scores]
+
+  mgstageclear:
+    description: Force advance to the next stage.
+    usage: /mgstageclear <seconds>
+    aliases: [stageclear]
+    permission: dungeonexplorers.admin
+
+  mgaddtreasure:
+    description: Give treasure to a player.
+    usage: /mgaddtreasure <player> <rarity>
+    aliases: [addtreasure]
+    permission: dungeonexplorers.admin
+
+  mgdebug:
+    description: View dungeon debug information.
+    usage: /mgdebug
+    permission: dungeonexplorers.admin
+
+permissions:
+
+  dungeonexplorers.admin:
+    description: Admin control of the dungeon system.
+    default: op
+
+  dungeonexplorers.play:
+    description: Participate in dungeon runs.
+    default: true
 
