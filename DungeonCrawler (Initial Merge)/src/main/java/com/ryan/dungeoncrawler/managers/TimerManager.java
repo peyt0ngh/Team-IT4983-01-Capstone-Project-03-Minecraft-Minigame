@@ -7,17 +7,23 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.UUID;
+import java.util.HashSet;
+import java.util.Set;
 
 public class TimerManager {
 
     public static final int TOTAL_LEVELS = 3;
 
-    private final Plugin plugin;
+    private final JavaPlugin plugin;
     private final ScoreManager scoreManager;
 
     private int currentLevel = 0;
@@ -27,17 +33,15 @@ public class TimerManager {
     private final World world;
     private final Location pasteLocation;
 
-    public TimerManager(Plugin plugin, ScoreManager scoreManager) {
+    private final Set<UUID> waitingPlayers = new HashSet<>();
+
+    public TimerManager(JavaPlugin plugin, ScoreManager scoreManager) {
         this.plugin = plugin;
         this.scoreManager = scoreManager;
 
         this.world = Bukkit.getWorld("world");
         this.pasteLocation = new Location(world, 1000, -60, 0);
     }
-
-    /* ===================================================== */
-    /* PUBLIC API                                            */
-    /* ===================================================== */
 
     public void startRun() {
         stopRun();
@@ -82,6 +86,10 @@ public class TimerManager {
         return true;
     }
 
+    public boolean clearCurrentLevelWithCurrentTime() {
+        return clearCurrentLevel(timeRemaining);
+    }
+
     public int getCurrentLevel() {
         return currentLevel;
     }
@@ -90,9 +98,17 @@ public class TimerManager {
         return timeRemaining;
     }
 
-    /* ===================================================== */
-    /* TIMER                                                 */
-    /* ===================================================== */
+    public void sendToWaitingArea(Player player) {
+        waitingPlayers.add(player.getUniqueId());
+
+        Location waiting = new Location(world, 1200, -55, 0);
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            player.spigot().respawn();
+            player.teleport(waiting);
+            player.sendMessage("§eYou are out for this stage. You will rejoin next stage.");
+        }, 2L);
+    }
 
     private void startTimer(int seconds) {
         timeRemaining = seconds;
@@ -103,7 +119,6 @@ public class TimerManager {
         ));
 
         taskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
-
             timeRemaining--;
 
             if (timeRemaining % 60 == 0 ||
@@ -123,35 +138,27 @@ public class TimerManager {
         }, 20L, 20L);
     }
 
-    /* ===================================================== */
-    /* STAGE LOADING                                         */
-    /* ===================================================== */
-
     private void loadStage(int stage) {
-
         clearArena();
 
-        File folder = new File(plugin.getDataFolder(),
-                "maps/stage" + stage);
+        File folder = new File(plugin.getDataFolder(), "maps/stage" + stage);
 
-        if (!folder.exists()) folder.mkdirs();
+        if (!folder.exists()) {
+            folder.mkdirs();
+        }
 
         File[] schems = folder.listFiles((dir, name) ->
-                name.endsWith(".schem") || name.endsWith(".schematic"));
+                name.toLowerCase().endsWith(".schem")
+                        || name.toLowerCase().endsWith(".schematic"));
 
         if (schems == null || schems.length == 0) {
-            plugin.getLogger().warning(
-                    "No schematics found in " + folder.getPath());
+            plugin.getLogger().warning("No schematics found in " + folder.getPath());
             return;
         }
 
         File chosen = schems[new Random().nextInt(schems.length)];
 
-        SchematicUtil.pasteSchematic(
-                chosen,
-                pasteLocation,
-                0
-        );
+        SchematicUtil.pasteSchematic(chosen, pasteLocation, 0);
 
         Bukkit.broadcast(Component.text(
                 "Loaded map: " + chosen.getName(),
@@ -161,76 +168,110 @@ public class TimerManager {
         Bukkit.getScheduler().runTaskLater(plugin, this::teleportPlayersToSpawn, 20L);
     }
 
-    /* ===================================================== */
-    /* PLAYER TELEPORT                                       */
-    /* ===================================================== */
-
     private void teleportPlayersToSpawn() {
-
         Location spawn = findSpawnMarker();
 
         if (spawn == null) {
-            spawn = pasteLocation.clone().add(8, 1, 8);
+            spawn = pasteLocation.clone().add(8, 2, 8);
         }
 
         for (Player player : Bukkit.getOnlinePlayers()) {
-
             if (!scoreManager.isSessionActive()) continue;
-
-            if (!scoreManager.getSession()
-                    .hasPlayer(player.getUniqueId())) continue;
+            if (!scoreManager.getSession().hasPlayer(player.getUniqueId())) continue;
 
             player.teleport(spawn);
+            player.setHealth(player.getMaxHealth());
+            player.setFoodLevel(20);
+            player.setFireTicks(0);
         }
+
+        waitingPlayers.clear();
     }
 
     private Location findSpawnMarker() {
+        int baseX = pasteLocation.getBlockX();
+        int baseY = pasteLocation.getBlockY();
+        int baseZ = pasteLocation.getBlockZ();
 
-        int minX = pasteLocation.getBlockX();
-        int minY = pasteLocation.getBlockY();
-        int minZ = pasteLocation.getBlockZ();
+        List<Location> markers = new ArrayList<>();
 
-        for (int x = minX; x < minX + 64; x++) {
-            for (int y = minY; y < minY + 30; y++) {
-                for (int z = minZ; z < minZ + 64; z++) {
+        int minY = Math.max(world.getMinHeight(), baseY - 5);
+        int maxY = Math.min(world.getMaxHeight() - 1, baseY + 80);
+
+        for (int x = baseX - 100; x <= baseX + 100; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = baseZ - 100; z <= baseZ + 100; z++) {
 
                     Block b = world.getBlockAt(x, y, z);
 
-                    if (b.getType() == Material.LIME_CONCRETE) {
-                        return b.getLocation().add(0.5, 1.1, 0.5);
+                    if (b.getType() == Material.LIME_CONCRETE ||
+                            b.getType() == Material.LIME_WOOL) {
+                        markers.add(b.getLocation());
                     }
                 }
             }
         }
 
-        return null;
+        if (markers.isEmpty()) {
+            plugin.getLogger().warning("No lime spawn marker found. Using fallback spawn.");
+            return null;
+        }
+
+        double avgX = 0;
+        double avgY = 0;
+        double avgZ = 0;
+
+        for (Location loc : markers) {
+            avgX += loc.getX();
+            avgY += loc.getY();
+            avgZ += loc.getZ();
+        }
+
+        avgX /= markers.size();
+        avgY /= markers.size();
+        avgZ /= markers.size();
+
+        return new Location(world, avgX + 0.5, avgY + 1.2, avgZ + 0.5);
     }
 
-    /* ===================================================== */
-    /* ARENA RESET                                           */
-    /* ===================================================== */
-
     private void clearArena() {
+        if (world == null) return;
 
         int baseX = pasteLocation.getBlockX();
         int baseY = pasteLocation.getBlockY();
         int baseZ = pasteLocation.getBlockZ();
 
-        for (int x = baseX - 10; x <= baseX + 100; x++) {
-            for (int y = baseY - 10; y <= baseY + 80; y++) {
-                for (int z = baseZ - 10; z <= baseZ + 100; z++) {
+        int minX = baseX - 120;
+        int maxX = baseX + 120;
+
+        int minY = Math.max(world.getMinHeight(), baseY - 4);
+        int maxY = Math.min(world.getMaxHeight() - 1, baseY + 100);
+
+        int minZ = baseZ - 120;
+        int maxZ = baseZ + 120;
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
                     world.getBlockAt(x, y, z).setType(Material.AIR);
                 }
             }
         }
+
+        for (Entity entity : world.getEntities()) {
+            if (entity instanceof Player) continue;
+
+            Location loc = entity.getLocation();
+
+            if (loc.getX() >= minX && loc.getX() <= maxX &&
+                    loc.getY() >= minY && loc.getY() <= maxY &&
+                    loc.getZ() >= minZ && loc.getZ() <= maxZ) {
+                entity.remove();
+            }
+        }
     }
 
-    /* ===================================================== */
-    /* END STATES                                            */
-    /* ===================================================== */
-
     private void finishRun() {
-
         stopRun();
 
         Bukkit.broadcast(Component.text(
@@ -240,16 +281,12 @@ public class TimerManager {
 
         if (scoreManager.isSessionActive()) {
             scoreManager.tallyTreasuresFromInventories();
-            MessageUtil.broadcastFinalResults(
-                    (org.bukkit.plugin.java.JavaPlugin) plugin,
-                    scoreManager.getSession()
-            );
+            MessageUtil.broadcastFinalResults(plugin, scoreManager.getSession());
             scoreManager.clearSession();
         }
     }
 
     private void failRun() {
-
         stopRun();
 
         Bukkit.broadcast(Component.text(
@@ -258,7 +295,6 @@ public class TimerManager {
         ));
 
         if (scoreManager.isSessionActive()) {
-
             GameSession session = scoreManager.getSession();
 
             for (Player player : Bukkit.getOnlinePlayers()) {
@@ -268,19 +304,10 @@ public class TimerManager {
             }
 
             scoreManager.tallyTreasuresFromInventories();
-
-            MessageUtil.broadcastFinalResults(
-                    (org.bukkit.plugin.java.JavaPlugin) plugin,
-                    session
-            );
-
+            MessageUtil.broadcastFinalResults(plugin, session);
             scoreManager.clearSession();
         }
     }
-
-    /* ===================================================== */
-    /* HELPERS                                               */
-    /* ===================================================== */
 
     private int stageSeconds(int level) {
         return switch (level) {
@@ -292,7 +319,6 @@ public class TimerManager {
     }
 
     private String format(int total) {
-
         if (total < 0) total = 0;
 
         int m = total / 60;
