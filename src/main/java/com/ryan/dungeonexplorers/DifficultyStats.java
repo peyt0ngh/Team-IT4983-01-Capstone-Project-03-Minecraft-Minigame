@@ -1,4 +1,4 @@
-package com.ryan.dungeoncrawler;
+package com.ryan.dungeonexplorers;
 
 /**
  * Immutable snapshot of difficulty-scaled mob stats for one dungeon level.
