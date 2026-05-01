@@ -1,4 +1,4 @@
-package com.ryan.dungeoncrawler;
+package com.ryan.dungeonexplorers;
 
 /**
  * Computes difficulty-scaled mob stats for a given dungeon level.
