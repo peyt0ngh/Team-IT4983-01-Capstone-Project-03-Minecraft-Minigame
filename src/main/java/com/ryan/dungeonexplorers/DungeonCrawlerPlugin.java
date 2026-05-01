@@ -1,24 +1,24 @@
-package com.ryan.dungeoncrawler;
+package com.ryan.dungeonexplorers;
 
-import com.ryan.dungeoncrawler.dungeon.ExitManager;
-import com.ryan.dungeoncrawler.listeners.EntityDeathListener;
-import com.ryan.dungeoncrawler.listeners.PlayerDeathListener;
-import com.ryan.dungeoncrawler.listeners.PlayerJoinListener;
-import com.ryan.dungeoncrawler.managers.ScoreManager;
-import com.ryan.dungeoncrawler.managers.TimerManager;
-import com.ryan.dungeoncrawler.util.TreasureItemFactory;
+import com.ryan.dungeonexplorers.dungeon.ExitManager;
+import com.ryan.dungeonexplorers.listeners.EntityDeathListener;
+import com.ryan.dungeonexplorers.listeners.PlayerDeathListener;
+import com.ryan.dungeonexplorers.listeners.PlayerJoinListener;
+import com.ryan.dungeonexplorers.managers.ScoreManager;
+import com.ryan.dungeonexplorers.managers.TimerManager;
+import com.ryan.dungeonexplorers.util.TreasureItemFactory;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class DungeonCrawlerPlugin extends JavaPlugin {
+public class dungeonexplorersPlugin extends JavaPlugin {
 
     private ScoreManager scoreManager;
     private TimerManager timerManager;
 
     @Override
     public void onEnable() {
-        getLogger().info("DungeonCrawler enabling...");
+        getLogger().info("dungeonexplorers enabling...");
 
         TreasureItemFactory.init(this);
 
@@ -42,7 +42,7 @@ public class DungeonCrawlerPlugin extends JavaPlugin {
         registerCommand("mgstageclear", executor);
         registerCommand("mgaddtreasure", executor);
 
-        getLogger().info("DungeonCrawler enabled successfully.");
+        getLogger().info("dungeonexplorers enabled successfully.");
     }
 
     @Override
@@ -51,7 +51,7 @@ public class DungeonCrawlerPlugin extends JavaPlugin {
             timerManager.stopRun();
         }
 
-        getLogger().info("DungeonCrawler disabled.");
+        getLogger().info("dungeonexplorers disabled.");
     }
 
     private void registerCommand(String name, DungeonCommandExecutor exec) {
