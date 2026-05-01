@@ -1,10 +1,10 @@
-package com.ryan.dungeoncrawler;
+package com.ryan.dungeonexplorers;
 
-import com.ryan.dungeoncrawler.managers.ScoreManager;
-import com.ryan.dungeoncrawler.managers.TimerManager;
-import com.ryan.dungeoncrawler.model.GameSession;
-import com.ryan.dungeoncrawler.model.TreasureRarity;
-import com.ryan.dungeoncrawler.util.MessageUtil;
+import com.ryan.dungeonexplorers.managers.ScoreManager;
+import com.ryan.dungeonexplorers.managers.TimerManager;
+import com.ryan.dungeonexplorers.model.GameSession;
+import com.ryan.dungeonexplorers.model.TreasureRarity;
+import com.ryan.dungeonexplorers.util.MessageUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
@@ -50,7 +50,7 @@ public class DungeonCommandExecutor implements CommandExecutor {
 
     private boolean handleStart(CommandSender sender, String[] args) {
 
-        if (!sender.hasPermission("dungeoncrawler.admin")) {
+        if (!sender.hasPermission("dungeonexplorers.admin")) {
             MessageUtil.sendError(sender, "No permission.");
             return true;
         }
@@ -90,7 +90,7 @@ public class DungeonCommandExecutor implements CommandExecutor {
 
     private boolean handleStop(CommandSender sender) {
 
-        if (!sender.hasPermission("dungeoncrawler.admin")) {
+        if (!sender.hasPermission("dungeonexplorers.admin")) {
             MessageUtil.sendError(sender, "No permission.");
             return true;
         }
@@ -133,7 +133,7 @@ public class DungeonCommandExecutor implements CommandExecutor {
 
     private boolean handleStageClear(CommandSender sender, String[] args) {
 
-        if (!sender.hasPermission("dungeoncrawler.admin")) {
+        if (!sender.hasPermission("dungeonexplorers.admin")) {
             MessageUtil.sendError(sender, "No permission.");
             return true;
         }
@@ -174,7 +174,7 @@ public class DungeonCommandExecutor implements CommandExecutor {
 
     private boolean handleAddTreasure(CommandSender sender, String[] args) {
 
-        if (!sender.hasPermission("dungeoncrawler.admin")) {
+        if (!sender.hasPermission("dungeonexplorers.admin")) {
             MessageUtil.sendError(sender, "No permission.");
             return true;
         }
