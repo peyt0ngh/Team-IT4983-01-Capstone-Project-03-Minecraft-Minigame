@@ -6,14 +6,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.ryan</groupId>
-    <artifactId>dungeon-crawler</artifactId>
+    <artifactId>dungeon-explorers</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
 
-    <name>DungeonCrawler</name>
+    <name>Dungeon Explorers</name>
     <description>
-        Unified Bukkit plugin — per-level countdown timer with difficulty scaling,
-        kill/treasure/death scoring, and time-bonus stage system.
+        IT4983 Capstone Project 03 Team 1 - A Minecraft Minigame created for KSU eSports about exploring dungeons, looting for treasure and surviving before time runs out!
     </description>
 
     <properties>
