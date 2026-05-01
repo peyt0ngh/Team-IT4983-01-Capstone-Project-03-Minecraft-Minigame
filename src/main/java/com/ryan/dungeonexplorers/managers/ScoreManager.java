@@ -1,9 +1,9 @@
-package com.ryan.dungeoncrawler.managers;
+package com.ryan.dungeonexplorers.managers;
 
-import com.ryan.dungeoncrawler.model.GameSession;
-import com.ryan.dungeoncrawler.model.PlayerScore;
-import com.ryan.dungeoncrawler.model.TreasureRarity;
-import com.ryan.dungeoncrawler.util.TreasureItemFactory;
+import com.ryan.dungeonexplorers.model.GameSession;
+import com.ryan.dungeonexplorers.model.PlayerScore;
+import com.ryan.dungeonexplorers.model.TreasureRarity;
+import com.ryan.dungeonexplorers.util.TreasureItemFactory;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -12,7 +12,7 @@ import org.bukkit.plugin.java.JavaPlugin;
  * Central manager that orchestrates game sessions and score operations.
  *
  * Unchanged scoring logic from MinigameScorer; package relocated to
- * com.ryan.dungeoncrawler.managers to match the unified plugin structure.
+ * com.ryan.dungeonexplorers.managers to match the unified plugin structure.
  */
 public class ScoreManager {
 
