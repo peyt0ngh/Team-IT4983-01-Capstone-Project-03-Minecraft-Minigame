@@ -1,4 +1,4 @@
-package com.ryan.dungeoncrawler.model;
+package com.ryan.dungeonexplorers.model;
 
 import java.util.*;
 
