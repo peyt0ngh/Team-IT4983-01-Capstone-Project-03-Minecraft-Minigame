@@ -1,4 +1,4 @@
-package com.ryan.dungeoncrawler.util;
+package com.ryan.dungeonexplorers.util;
 
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.EditSession;
