@@ -1,10 +1,10 @@
-package com.ryan.dungeoncrawler.listeners;
+package com.ryan.dungeonexplorers.listeners;
 
-import com.ryan.dungeoncrawler.managers.ScoreManager;
-import com.ryan.dungeoncrawler.managers.TimerManager;
-import com.ryan.dungeoncrawler.model.GameSession;
-import com.ryan.dungeoncrawler.model.PlayerScore;
-import com.ryan.dungeoncrawler.util.MessageUtil;
+import com.ryan.dungeonexplorers.managers.ScoreManager;
+import com.ryan.dungeonexplorers.managers.TimerManager;
+import com.ryan.dungeonexplorers.model.GameSession;
+import com.ryan.dungeonexplorers.model.PlayerScore;
+import com.ryan.dungeonexplorers.util.MessageUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
