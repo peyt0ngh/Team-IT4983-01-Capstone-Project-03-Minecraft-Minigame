@@ -235,7 +235,10 @@ public class TimerManager {
 
         Location spawn = new Location(world, avgX + 0.5, avgY + 1, avgZ + 0.5);
 
-        while (!spawn.getBlock().getType().isAir()
+        int maxRaise = 10;
+        int raised = 0;
+        
+        while (raised < maxRaise && !spawn.getBlock().getType().isAir()
                 || !spawn.clone().add(0, 1, 0).getBlock().getType().isAir()) {
             spawn.add(0, 1, 0);
         }
