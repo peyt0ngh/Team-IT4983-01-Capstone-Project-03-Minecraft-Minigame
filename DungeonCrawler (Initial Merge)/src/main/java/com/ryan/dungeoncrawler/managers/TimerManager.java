@@ -207,8 +207,7 @@ public class TimerManager {
 
                     Block b = world.getBlockAt(x, y, z);
 
-                    if (b.getType() == Material.LIME_CONCRETE ||
-                            b.getType() == Material.LIME_WOOL) {
+                    if (b.getType() == Material.LIME_CONCRETE) {
                         markers.add(b.getLocation());
                     }
                 }
@@ -260,8 +259,7 @@ public class TimerManager {
 
                     Block block = world.getBlockAt(x, y, z);
 
-                    if (block.getType() == Material.RED_CONCRETE ||
-                            block.getType() == Material.RED_WOOL) {
+                    if (block.getType() == Material.RED_CONCRETE) {
 
                         Location spawnLoc = block.getLocation().add(0.5, 1.0, 0.5);
 
