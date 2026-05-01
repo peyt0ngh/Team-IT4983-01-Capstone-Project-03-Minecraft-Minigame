@@ -1,8 +1,8 @@
-package com.ryan.dungeoncrawler.managers;
+package com.ryan.dungeonexplorers.managers;
 
-import com.ryan.dungeoncrawler.model.GameSession;
-import com.ryan.dungeoncrawler.util.MessageUtil;
-import com.ryan.dungeoncrawler.util.SchematicUtil;
+import com.ryan.dungeonexplorers.model.GameSession;
+import com.ryan.dungeonexplorers.util.MessageUtil;
+import com.ryan.dungeonexplorers.util.SchematicUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.*;
