@@ -1,6 +1,6 @@
-package com.ryan.dungeoncrawler.util;
+package com.ryan.dungeonexplorers.util;
 
-import com.ryan.dungeoncrawler.model.TreasureRarity;
+import com.ryan.dungeonexplorers.model.TreasureRarity;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
