@@ -27,7 +27,7 @@ public class DungeonCrawlerPlugin extends JavaPlugin {
 
         PluginManager pm = getServer().getPluginManager();
 
-        new ExitManager(this, scoreManager, timerManager);
+        pm.registerEvents(new ExitManager(this, scoreManager, timerManager), this);
 
         pm.registerEvents(new EntityDeathListener(scoreManager), this);
         pm.registerEvents(new PlayerDeathListener(this, scoreManager, timerManager), this);
