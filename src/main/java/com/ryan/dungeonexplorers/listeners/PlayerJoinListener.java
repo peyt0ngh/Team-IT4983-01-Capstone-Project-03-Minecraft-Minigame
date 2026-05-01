@@ -1,6 +1,6 @@
-package com.ryan.dungeoncrawler.listeners;
+package com.ryan.dungeonexplorers.listeners;
 
-import com.ryan.dungeoncrawler.managers.ScoreManager;
+import com.ryan.dungeonexplorers.managers.ScoreManager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
