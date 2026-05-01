@@ -1,7 +1,7 @@
-package com.ryan.dungeoncrawler.dungeon;
+package com.ryan.dungeonexplorers.dungeon;
 
-import com.ryan.dungeoncrawler.managers.ScoreManager;
-import com.ryan.dungeoncrawler.managers.TimerManager;
+import com.ryan.dungeonexplorers.managers.ScoreManager;
+import com.ryan.dungeonexplorers.managers.TimerManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
