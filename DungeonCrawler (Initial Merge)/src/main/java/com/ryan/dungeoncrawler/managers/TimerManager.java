@@ -8,16 +8,13 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 public class TimerManager {
 
@@ -62,6 +59,10 @@ public class TimerManager {
         return taskId != -1;
     }
 
+    public boolean clearCurrentLevelWithCurrentTime() {
+        return clearCurrentLevel(timeRemaining);
+    }
+
     public boolean clearCurrentLevel(int secondsRemaining) {
         if (!isRunning()) return false;
 
@@ -84,10 +85,6 @@ public class TimerManager {
         startTimer(stageSeconds(currentLevel));
 
         return true;
-    }
-
-    public boolean clearCurrentLevelWithCurrentTime() {
-        return clearCurrentLevel(timeRemaining);
     }
 
     public int getCurrentLevel() {
@@ -119,6 +116,7 @@ public class TimerManager {
         ));
 
         taskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
+
             timeRemaining--;
 
             if (timeRemaining % 60 == 0 ||
@@ -165,7 +163,10 @@ public class TimerManager {
                 NamedTextColor.GRAY
         ));
 
-        Bukkit.getScheduler().runTaskLater(plugin, this::teleportPlayersToSpawn, 20L);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            spawnMobsFromMarkers(stage);
+            teleportPlayersToSpawn();
+        }, 20L);
     }
 
     private void teleportPlayersToSpawn() {
@@ -195,12 +196,14 @@ public class TimerManager {
 
         List<Location> markers = new ArrayList<>();
 
-        int minY = Math.max(world.getMinHeight(), baseY - 5);
-        int maxY = Math.min(world.getMaxHeight() - 1, baseY + 80);
+        int radius = 300;
 
-        for (int x = baseX - 100; x <= baseX + 100; x++) {
+        int minY = Math.max(world.getMinHeight(), baseY);
+        int maxY = Math.min(world.getMaxHeight() - 1, baseY + 120);
+
+        for (int x = baseX - radius; x <= baseX + radius; x++) {
             for (int y = minY; y <= maxY; y++) {
-                for (int z = baseZ - 100; z <= baseZ + 100; z++) {
+                for (int z = baseZ - radius; z <= baseZ + radius; z++) {
 
                     Block b = world.getBlockAt(x, y, z);
 
@@ -231,7 +234,68 @@ public class TimerManager {
         avgY /= markers.size();
         avgZ /= markers.size();
 
-        return new Location(world, avgX + 0.5, avgY + 1.2, avgZ + 0.5);
+        Location spawn = new Location(world, avgX + 0.5, avgY + 1, avgZ + 0.5);
+
+        while (!spawn.getBlock().getType().isAir()
+                || !spawn.clone().add(0, 1, 0).getBlock().getType().isAir()) {
+            spawn.add(0, 1, 0);
+        }
+
+        return spawn;
+    }
+
+    private void spawnMobsFromMarkers(int stage) {
+        int baseX = pasteLocation.getBlockX();
+        int baseY = pasteLocation.getBlockY();
+        int baseZ = pasteLocation.getBlockZ();
+
+        int radius = 300;
+
+        int minY = Math.max(world.getMinHeight(), baseY);
+        int maxY = Math.min(world.getMaxHeight() - 1, baseY + 120);
+
+        for (int x = baseX - radius; x <= baseX + radius; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = baseZ - radius; z <= baseZ + radius; z++) {
+
+                    Block block = world.getBlockAt(x, y, z);
+
+                    if (block.getType() == Material.RED_CONCRETE ||
+                            block.getType() == Material.RED_WOOL) {
+
+                        Location spawnLoc = block.getLocation().add(0.5, 1.0, 0.5);
+
+                        EntityType type = chooseMobForStage(stage);
+
+                        Entity spawned = world.spawnEntity(spawnLoc, type);
+
+                        if (spawned instanceof LivingEntity living) {
+                            living.setRemoveWhenFarAway(false);
+                        }
+
+                        block.setType(Material.AIR);
+                    }
+                }
+            }
+        }
+    }
+
+    private EntityType chooseMobForStage(int stage) {
+        return switch (stage) {
+            case 1 -> Math.random() < 0.5
+                    ? EntityType.ZOMBIE
+                    : EntityType.SKELETON;
+
+            case 2 -> Math.random() < 0.5
+                    ? EntityType.WITHER_SKELETON
+                    : EntityType.BLAZE;
+
+            case 3 -> Math.random() < 0.5
+                    ? EntityType.ENDERMAN
+                    : EntityType.SHULKER;
+
+            default -> EntityType.ZOMBIE;
+        };
     }
 
     private void clearArena() {
@@ -241,14 +305,14 @@ public class TimerManager {
         int baseY = pasteLocation.getBlockY();
         int baseZ = pasteLocation.getBlockZ();
 
-        int minX = baseX - 120;
-        int maxX = baseX + 120;
+        int minX = baseX - 300;
+        int maxX = baseX + 300;
 
-        int minY = Math.max(world.getMinHeight(), baseY - 4);
-        int maxY = Math.min(world.getMaxHeight() - 1, baseY + 100);
+        int minY = baseY;
+        int maxY = Math.min(world.getMaxHeight() - 1, baseY + 120);
 
-        int minZ = baseZ - 120;
-        int maxZ = baseZ + 120;
+        int minZ = baseZ - 300;
+        int maxZ = baseZ + 300;
 
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
