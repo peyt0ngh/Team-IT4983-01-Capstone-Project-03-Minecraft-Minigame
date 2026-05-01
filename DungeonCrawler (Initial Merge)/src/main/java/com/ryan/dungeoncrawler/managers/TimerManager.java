@@ -164,7 +164,7 @@ public class TimerManager {
         ));
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            spawnMobsFromMarkers(stage);
+            spawnMobsFromMarkers(stage, chosen.getName());
             teleportPlayersToSpawn();
         }, 20L);
     }
@@ -207,7 +207,8 @@ public class TimerManager {
 
                     Block b = world.getBlockAt(x, y, z);
 
-                    if (b.getType() == Material.LIME_CONCRETE) {
+                    if (b.getType() == Material.LIME_CONCRETE ||
+                            b.getType() == Material.LIME_WOOL) {
                         markers.add(b.getLocation());
                     }
                 }
@@ -243,7 +244,7 @@ public class TimerManager {
         return spawn;
     }
 
-    private void spawnMobsFromMarkers(int stage) {
+    private void spawnMobsFromMarkers(int stage, String schematicName) {
         int baseX = pasteLocation.getBlockX();
         int baseY = pasteLocation.getBlockY();
         int baseZ = pasteLocation.getBlockZ();
@@ -259,16 +260,22 @@ public class TimerManager {
 
                     Block block = world.getBlockAt(x, y, z);
 
-                    if (block.getType() == Material.RED_CONCRETE) {
+                    if (block.getType() == Material.RED_CONCRETE ||
+                            block.getType() == Material.RED_WOOL) {
 
                         Location spawnLoc = block.getLocation().add(0.5, 1.0, 0.5);
 
-                        EntityType type = chooseMobForStage(stage);
+                        for (EntityType type : chooseMobsForStageAndMap(stage, schematicName)) {
+                            try {
+                                Entity spawned = world.spawnEntity(spawnLoc, type);
 
-                        Entity spawned = world.spawnEntity(spawnLoc, type);
-
-                        if (spawned instanceof LivingEntity living) {
-                            living.setRemoveWhenFarAway(false);
+                                if (spawned instanceof LivingEntity living) {
+                                    living.setRemoveWhenFarAway(false);
+                                }
+                            } catch (Exception e) {
+                                plugin.getLogger().warning(
+                                        "Could not spawn mob " + type + ": " + e.getMessage());
+                            }
                         }
 
                         block.setType(Material.AIR);
@@ -278,22 +285,107 @@ public class TimerManager {
         }
     }
 
-    private EntityType chooseMobForStage(int stage) {
-        return switch (stage) {
-            case 1 -> Math.random() < 0.5
-                    ? EntityType.ZOMBIE
-                    : EntityType.SKELETON;
+    private List<EntityType> chooseMobsForStageAndMap(int stage, String schematicName) {
+        String name = schematicName.toLowerCase();
 
-            case 2 -> Math.random() < 0.5
+        // Special override maps:
+        // mansion_4 gets only 2 Creakings.
+        if (name.contains("mansion_4")) {
+            return List.of(
+                    EntityType.CREAKING,
+                    EntityType.CREAKING
+            );
+        }
+
+        // Ancient City maps get only 1 Warden.
+        if (name.contains("ancient_city")) {
+            return List.of(EntityType.WARDEN);
+        }
+
+        List<EntityType> mobs = new ArrayList<>();
+
+        // Every normal map gets one default mob.
+        mobs.add(randomDefaultMob());
+
+        // And one environment-specific mob.
+        switch (stage) {
+            case 1 -> mobs.add(chooseStageOneThemeMob(name));
+            case 2 -> mobs.add(chooseStageTwoThemeMob(name));
+            case 3 -> mobs.add(chooseStageThreeThemeMob(name));
+            default -> mobs.add(randomDefaultMob());
+        }
+
+        return mobs;
+    }
+
+    private EntityType randomDefaultMob() {
+        return Math.random() < 0.5
+                ? EntityType.ZOMBIE
+                : EntityType.SKELETON;
+    }
+
+    private EntityType chooseStageOneThemeMob(String name) {
+        if (name.contains("stronghold")) {
+            return Math.random() < 0.5
+                    ? EntityType.SPIDER
+                    : EntityType.CAVE_SPIDER;
+        }
+
+        if (name.contains("temple")) {
+            return Math.random() < 0.5
+                    ? EntityType.PARCHED
+                    : EntityType.HUSK;
+        }
+
+        if (name.contains("trial")) {
+            return Math.random() < 0.5
+                    ? EntityType.BOGGED
+                    : EntityType.BREEZE;
+        }
+
+        return randomDefaultMob();
+    }
+
+    private EntityType chooseStageTwoThemeMob(String name) {
+        if (name.contains("mansion")) {
+            return Math.random() < 0.5
+                    ? EntityType.VINDICATOR
+                    : EntityType.PILLAGER;
+        }
+
+        if (name.contains("fortress")) {
+            return Math.random() < 0.5
                     ? EntityType.WITHER_SKELETON
                     : EntityType.BLAZE;
+        }
 
-            case 3 -> Math.random() < 0.5
+        if (name.contains("ancient_city")) {
+            return EntityType.WARDEN;
+        }
+
+        return randomDefaultMob();
+    }
+
+    private EntityType chooseStageThreeThemeMob(String name) {
+        if (name.contains("end_city")) {
+            return Math.random() < 0.5
                     ? EntityType.ENDERMAN
-                    : EntityType.SHULKER;
+                    : EntityType.ENDERMITE;
+        }
 
-            default -> EntityType.ZOMBIE;
-        };
+        if (name.contains("monument")) {
+            return Math.random() < 0.5
+                    ? EntityType.DROWNED
+                    : EntityType.BOGGED;
+        }
+
+        if (name.contains("bastion")) {
+            return Math.random() < 0.5
+                    ? EntityType.MAGMA_CUBE
+                    : EntityType.WITHER_SKELETON;
+        }
+
+        return randomDefaultMob();
     }
 
     private void clearArena() {
@@ -306,6 +398,7 @@ public class TimerManager {
         int minX = baseX - 300;
         int maxX = baseX + 300;
 
+        // Do not clear below paste Y so the superflat ground remains.
         int minY = baseY;
         int maxY = Math.min(world.getMaxHeight() - 1, baseY + 120);
 
