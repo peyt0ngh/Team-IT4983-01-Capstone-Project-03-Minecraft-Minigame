@@ -1,3 +1,4 @@
 Dungeon Explorers Minigame for KSU IT4983
+Created by: Ryan Heidel, Preston Clark, Peyton Rihner, Surah Muhammad and Zara Khusro
 
 Place provided dungeon-explorers-1.0.0.jar file into server plugins folder of world, preferably an empty world due to hardcoded coordinate variables.
