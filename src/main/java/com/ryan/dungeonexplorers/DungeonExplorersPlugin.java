@@ -4,6 +4,7 @@ import com.ryan.dungeonexplorers.dungeon.ExitManager;
 import com.ryan.dungeonexplorers.listeners.EntityDeathListener;
 import com.ryan.dungeonexplorers.listeners.PlayerDeathListener;
 import com.ryan.dungeonexplorers.listeners.PlayerJoinListener;
+import com.ryan.dungeonexplorers.listeners.RespawnListener;
 import com.ryan.dungeonexplorers.managers.ScoreManager;
 import com.ryan.dungeonexplorers.managers.TimerManager;
 import com.ryan.dungeonexplorers.util.TreasureItemFactory;
@@ -11,7 +12,7 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class dungeonexplorersPlugin extends JavaPlugin {
+public class DungeonExplorersPlugin extends JavaPlugin {
 
     private ScoreManager scoreManager;
     private TimerManager timerManager;
@@ -30,6 +31,7 @@ public class dungeonexplorersPlugin extends JavaPlugin {
         pm.registerEvents(new ExitManager(this, scoreManager, timerManager), this);
 
         pm.registerEvents(new EntityDeathListener(scoreManager), this);
+        pm.registerEvents(new RespawnListener(this, timerManager, scoreManager), this);
         pm.registerEvents(new PlayerDeathListener(this, scoreManager, timerManager), this);
         pm.registerEvents(new PlayerJoinListener(scoreManager), this);
 
