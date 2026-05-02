@@ -5,7 +5,7 @@ Created by: Ryan Heidel, Preston Clark, Peyton Rihner, Surah Muhammad and Zara K
 Place provided dungeon-explorers-1.0.0.jar file into server plugins folder of world, preferably an empty world due to hardcoded coordinate variables.
 
 
-Commands:
+Commands (all require dungeonexplorers.admin permission):
 
 /mgstart [singleplayer/multiplayer] - Initiates game and generates dungeon
 
