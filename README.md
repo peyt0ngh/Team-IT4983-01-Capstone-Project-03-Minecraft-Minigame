@@ -1,3 +1,7 @@
+https://github.com/peyt0ngh/Team-IT4983-01-Capstone-Project-03-Minecraft-Minigame
+
+----------------------------------------------------------------------
+
 Dungeon Explorers Minigame for KSU IT4983
 
 Created by: Ryan Heidel, Preston Clark, Peyton Rihner, Surah Muhammad and Zara Khusro
